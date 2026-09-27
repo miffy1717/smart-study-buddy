@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart Study Buddy</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Damion&family=Caveat:wght@500;700&family=Patrick+Hand&family=Poppins:wght@400;500;600;700&family=Georgia&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#e0708a; --primary-dark:#b34d66; --primary-light:#f2a6b8;
+    --accent:#f6c667; --bg:#faf1d9; --card:#fdf3df; --text:#3a2620; --textsoft:#8a6a5f;
+    --shade-1:#fde3cf; --shade-2:#f8c3a1; --shade-3:#f29e7c; --shade-4:#e97c72; --shade-5:#c85368;
+  }
+  /* Yellowish Pink — soft yellow/beige, never pure white */
+  html.theme-sunset{
+    --primary:#e0708a; --primary-dark:#b34d66; --primary-light:#f2a6b8;
+    --accent:#f6c667; --bg:#faf1d9; --card:#fdf3df; --text:#3a2620; --textsoft:#8a6a5f;
+    --shade-1:#fde3cf; --shade-2:#f8c3a1; --shade-3:#f29e7c; --shade-4:#e97c72; --shade-5:#c85368;
+  }
+  /* Brownish Green — warm brown base, forest green accents, never white */
+  html.theme-forest{
+    --primary:#7c9469; --primary-dark:#4b6043; --primary-light:#a3b98f;
+    --accent:#c99a5b; --bg:#4a3826; --card:#5c4632; --text:#f3ead9; --textsoft:#cbb89a;
+    --shade-1:#8ea77c; --shade-2:#748f61; --shade-3:#5c7a47; --shade-4:#445e33; --shade-5:#2e4321;
+  }
+  /* Navy Blue — full dark mode */
+  html.theme-navy{
+    --primary:#4a7fc9; --primary-dark:#274870; --primary-light:#7fa8db;
+    --accent:#7fb2e5; --bg:#0f172a; --card:#1b2740; --text:#e6edf7; --textsoft:#9fb0c9;
+    --shade-1:#33547a; --shade-2:#2f4666; --shade-3:#3f6ea3; --shade-4:#5a94d6; --shade-5:#8fc1ff;
+  }
+  /* Dark Red — full dark mode */
+  html.theme-maroon{
+    --primary:#c0392b; --primary-dark:#7a1f2b; --primary-light:#e07a6a;
+    --accent:#d98c56; --bg:#120303; --card:#241012; --text:#f5e6e2; --textsoft:#b98f8a;
+    --shade-1:#4a1f1f; --shade-2:#6b2a26; --shade-3:#93372c; --shade-4:#c14632; --shade-5:#f05a3d;
+  }
+  body{ background:var(--bg); color:var(--text); font-family:'Poppins',sans-serif; transition:background .2s, color .2s; }
+  .font-brand{ font-family:'Damion', cursive; }
+  .bg-primary{ background:var(--primary); } .bg-primary-dark{ background:var(--primary-dark); }
+  .text-primary{ color:var(--primary); } .border-primary{ border-color:var(--primary); }
+  .bg-card{ background:var(--card); } .text-soft{ color:var(--textsoft); }
+  .bg-accent{ background:var(--accent); } .text-accent{ color:var(--accent); }
+  .view{ display:none; } .view.active{ display:block; }
+  .modal-backdrop{ display:none; } .modal-backdrop.active{ display:flex; }
+  ::-webkit-scrollbar{ width:6px; height:6px; } ::-webkit-scrollbar-thumb{ background:var(--shade-3); border-radius:10px; }
+  .diff-dot{ width:8px; height:8px; border-radius:50%; background:var(--shade-2); }
+  .diff-dot.filled{ background:var(--primary); }
+  input[type=range]{ accent-color:var(--primary); }
+  .swatch{ width:26px; height:26px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:transform .15s; flex-shrink:0; }
+  .swatch:hover{ transform:scale(1.1); }
+  .swatch.active{ border-color:var(--text); box-shadow:0 0 0 2px var(--card); }
+  .nav-icon{ display:flex; flex-direction:column; align-items:center; gap:2px; color:var(--textsoft); cursor:pointer; transition:color .15s; }
+  .nav-icon.active{ color:var(--primary); }
+  .fab{ background:var(--primary); box-shadow:0 6px 16px rgba(0,0,0,0.3); }
+  .card-shadow{ box-shadow:0 2px 10px rgba(0,0,0,0.15); }
+  .notebook-page{
+    position:relative; min-height:560px; border-radius:16px; cursor:crosshair;
+    background-color:var(--card);
+    background-image: repeating-linear-gradient(var(--card) 0 31px, var(--shade-1) 31px 32px);
+    background-position: 0 8px;
+  }
+  .text-box{
+    position:absolute; min-width:130px; max-width:80%; padding:6px 22px 6px 8px;
+    border:1px dashed transparent; border-radius:6px; outline:none; cursor:text; line-height:1.4;
+  }
+  .text-box.active{ border-color:var(--primary); background:rgba(255,255,255,0.06); }
+  .text-box .box-del{
+    position:absolute; top:-2px; right:-2px; width:18px; height:18px; border-radius:50%;
+    background:var(--primary); color:#fff; font-size:11px; line-height:18px; text-align:center;
+    cursor:pointer; display:none;
+  }
+  .text-box.active .box-del{ display:block; }
+  #aiDrawer{ transition:transform .25s ease; transform:translateX(100%); }
+  #aiDrawer.open{ transform:translateX(0); }
+  .chat-bubble-user{ background:var(--primary); color:#fff; align-self:flex-end; }
+  .chat-bubble-ai{ background:var(--shade-1); color:var(--text); align-self:flex-start; }
+</style>
+</head>
+<body class="pb-24">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-30 bg-card card-shadow px-4 py-3 flex items-center justify-between">
+  <h1 class="font-brand text-4xl text-primary select-none">Smart Study Buddy</h1>
+  <div class="flex items-center gap-2" id="themeSwitcher">
+    <span class="swatch bg-[#4b6043]" data-theme="theme-forest" title="Brownish Green"></span>
+    <span class="swatch bg-[#1e3a5f]" data-theme="theme-navy" title="Navy Blue"></span>
+    <span class="swatch bg-[#7a1f2b]" data-theme="theme-maroon" title="Dark Red"></span>
+    <span class="swatch bg-[#e0708a]" data-theme="theme-sunset" title="Yellowish Pink"></span>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="max-w-2xl mx-auto px-4 pt-5">
+
+  <!-- DASHBOARD VIEW -->
+  <section id="view-dashboard" class="view active">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <p class="text-soft text-sm">Today's lineup</p>
+        <h2 class="text-xl font-semibold">Your tasks, ranked</h2>
+      </div>
+      <select id="filterSubject" class="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
+        <option value="all">All subjects</option>
+      </select>
+    </div>
+    <div id="taskList" class="flex flex-col gap-3"></div>
+    <p id="emptyState" class="hidden text-center text-soft text-sm py-10">No tasks yet — tap the + button to add your first assignment.</p>
+  </section>
+
+  <!-- ANALYTICS VIEW -->
+  <section id="view-analytics" class="view">
+    <h2 class="text-xl font-semibold mb-4">Focus & analytics</h2>
+    <div class="grid grid-cols-2 gap-3 mb-5">
+      <div class="bg-card rounded-2xl card-shadow p-4 text-center">
+        <p class="text-2xl font-semibold text-primary" id="statCompleted">0</p>
+        <p class="text-xs text-soft">goals completed</p>
+      </div>
+      <div class="bg-card rounded-2xl card-shadow p-4 text-center">
+        <p class="text-2xl font-semibold text-primary" id="statHours">0h</p>
+        <p class="text-xs text-soft">focused this week</p>
+      </div>
+    </div>
+    <div class="bg-card rounded-2xl card-shadow p-4 mb-4">
+      <p class="text-sm font-medium mb-2">Weekly study hours</p>
+      <canvas id="weeklyChart" height="140"></canvas>
+    </div>
+    <div class="bg-card rounded-2xl card-shadow p-4">
+      <p class="text-sm font-medium mb-2">Completed vs pending</p>
+      <canvas id="statusChart" height="140"></canvas>
+    </div>
+  </section>
+
+  <!-- NOTEBOOK VIEW (GoodNotes-style) -->
+  <section id="view-notebook" class="view">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-xl font-semibold">Notebook</h2>
+      <button id="clearPageBtn" class="text-xs text-soft underline">Clear page</button>
+    </div>
+
+    <!-- Floating formatting toolbar -->
+    <div class="bg-card rounded-2xl card-shadow p-3 mb-3 flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-1">
+        <span class="text-xs text-soft mr-1">Font</span>
+        <button class="font-btn text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white" data-font="sans" style="font-family:Poppins">Sans</button>
+        <button class="font-btn text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white" data-font="serif" style="font-family:Georgia">Serif</button>
+        <button class="font-btn text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white" data-font="hand" style="font-family:Caveat">Handwriting</button>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="text-xs text-soft mr-1">Color</span>
+        <span class="swatch" style="background:#1a2433" data-color="#1a2433"></span>
+        <span class="swatch border border-gray-300" style="background:#ffffff" data-color="#ffffff"></span>
+        <span class="swatch" style="background:#c0392b" data-color="#c0392b"></span>
+        <span class="swatch" style="background:#2471a3" data-color="#2471a3"></span>
+        <span class="swatch" style="background:#7a4a2f" data-color="#7a4a2f"></span>
+        <span class="swatch" style="background:#1e8449" data-color="#1e8449"></span>
+      </div>
+      <p id="toolbarHint" class="text-[11px] text-soft ml-auto">Click the page to add a text box</p>
+    </div>
+
+    <div id="notebookPage" class="notebook-page card-shadow"></div>
+  </section>
+</main>
+
+<!-- ADD TASK MODAL -->
+<div id="taskModalBackdrop" class="modal-backdrop fixed inset-0 bg-black/40 z-40 items-center justify-center px-4">
+  <div class="bg-card rounded-2xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">New task</h3>
+      <button id="closeTaskModal" class="text-soft text-xl leading-none">&times;</button>
+    </div>
+    <div class="flex flex-col gap-3">
+      <div>
+        <label class="text-xs text-soft">Title</label>
+        <input id="taskTitle" type="text" placeholder="Calc II problem set 7" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-1">
+      </div>
+      <div>
+        <label class="text-xs text-soft">Subject</label>
+        <input id="taskSubject" type="text" placeholder="Mathematics" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-1">
+      </div>
+      <div>
+        <label class="text-xs text-soft">Deadline</label>
+        <input id="taskDeadline" type="datetime-local" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-1">
+      </div>
+      <div>
+        <label class="text-xs text-soft">Difficulty: <span id="diffValue">3</span>/5</label>
+        <input id="taskDifficulty" type="range" min="1" max="5" step="1" value="3" class="w-full mt-1">
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-xs text-soft">Est. hours</label>
+          <input id="taskHours" type="number" min="0" value="1" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-1">
+        </div>
+        <div>
+          <label class="text-xs text-soft">Est. minutes</label>
+          <input id="taskMinutes" type="number" min="0" max="59" value="0" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-1">
+        </div>
+      </div>
+      <div>
+        <label class="text-xs text-soft">Notes (optional)</label>
+        <textarea id="taskNotes" rows="2" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-1 resize-none"></textarea>
+      </div>
+      <p id="taskFormError" class="text-xs text-red-600 hidden"></p>
+      <button id="submitTaskBtn" class="bg-primary text-white text-sm py-2.5 rounded-lg mt-1">Add task</button>
+    </div>
+  </div>
+</div>
+
+<!-- TIMER MODAL -->
+<div id="timerModalBackdrop" class="modal-backdrop fixed inset-0 bg-black/40 z-40 items-center justify-center px-4">
+  <div class="bg-card rounded-2xl w-full max-w-sm p-6 text-center">
+    <p class="text-sm text-soft mb-1" id="timerTaskName">Task</p>
+    <p class="text-4xl font-semibold mb-1 tabular-nums" id="timerDisplay">00:00:00</p>
+    <p class="text-xs text-soft mb-5" id="timerSubtext">Estimated 1h 0m</p>
+    <div class="flex justify-center gap-2 mb-3">
+      <button id="timerStartPause" class="bg-primary text-white text-sm px-5 py-2 rounded-lg">Start</button>
+      <button id="timerReset" class="border border-gray-300 text-sm px-5 py-2 rounded-lg">Reset</button>
+    </div>
+    <button id="timerFinish" class="text-sm text-primary underline">Finish & log time</button>
+    <button id="closeTimerModal" class="block mx-auto mt-4 text-soft text-xl leading-none">&times;</button>
+  </div>
+</div>
+
+<!-- AI STUDY ASSISTANT DRAWER -->
+<div id="aiDrawerBackdrop" class="fixed inset-0 bg-black/30 z-40 hidden"></div>
+<div id="aiDrawer" class="fixed top-0 right-0 h-full w-full max-w-sm bg-card z-50 flex flex-col card-shadow">
+  <div class="flex items-center justify-between px-4 py-3 border-b border-black/10">
+    <h3 class="font-semibold">AI Study Assistant</h3>
+    <button id="closeAiDrawer" class="text-soft text-xl leading-none">&times;</button>
+  </div>
+  <div id="aiMessages" class="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2"></div>
+  <div class="p-3 border-t border-black/10 flex gap-2">
+    <input id="aiInput" type="text" placeholder="Ask about your tasks or study tips..." class="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2">
+    <button id="aiSendBtn" class="bg-primary text-white text-sm px-4 py-2 rounded-lg">Send</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="fixed bottom-0 inset-x-0 bg-card border-t border-black/10 px-6 py-2.5 flex items-center justify-between z-30">
+  <div class="nav-icon active" data-view="dashboard">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    <span class="text-[10px]">Home</span>
+  </div>
+  <div class="nav-icon" data-view="analytics">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M12 20V4M20 20v-6"/></svg>
+    <span class="text-[10px]">Focus</span>
+  </div>
+  <button id="fabAddTask" class="fab w-14 h-14 rounded-full flex items-center justify-center text-white text-3xl -mt-8 shrink-0">+</button>
+  <div class="nav-icon" data-view="notebook">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
+    <span class="text-[10px]">Notes</span>
+  </div>
+  <div class="nav-icon" id="navAI">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/><circle cx="12" cy="12" r="3.2"/></svg>
+    <span class="text-[10px]">AI</span>
+  </div>
+</nav>
+
+<script src="app.js"></script>
+</body>
+</html>
